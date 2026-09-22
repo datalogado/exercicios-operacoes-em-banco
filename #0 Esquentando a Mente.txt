@@ -1,0 +1,39 @@
+CREATE TABLE usuarios(
+	id SERIAL PRIMARY KEY,
+	nome VARCHAR(50) NOT NULL,
+	email VARCHAR(50) UNIQUE NOT NULL,
+	nascimento DATE NOT NULL,
+	data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+INSERT INTO usuarios(nome,email,nascimento) VALUES
+('Hugo Huxley', 'hugo@gmail.com', '16/03/2005'),
+('Marcelo Eduardo', 'edu@gmail.com', '17/11/2010'),
+('Edilane Moraix', 'Edilane@gmail.com', '29/12/1986');
+
+SELECT * FROM usuarios WHERE nome LIKE 'H%' OR nome LIKE 'h%';
+SELECT * FROM usuarios ORDER BY id ASC;
+SELECT * FROM usuarios ORDER BY id DESC LIMIT 2;
+UPDATE usuarios SET nome = 'Edilane Morais' WHERE id = 3;
+DELETE FROM usuarios WHERE id = 1; 
+DROP TABLE usuarios
+
+ALTER TABLE usuarios
+ADD COLUMN idade SMALLINT NOT NULL DEFAULT 0
+
+UPDATE usuarios SET idade = '21' WHERE id = 4;
+UPDATE usuarios SET idade = 15 WHERE id = 5;
+UPDATE usuarios SET idade = 39 WHERE id = 6;
+
+CREATE TABLE pedidos(
+	codigo_pedido SERIAL PRIMARY KEY,
+	usuario_id INT REFERENCES usuarios(id),
+	data_pedido TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+INSERT INTO pedidos(usuario_id) VALUES('4');
+
+SELECT * FROM pedidos;
+
+
+
