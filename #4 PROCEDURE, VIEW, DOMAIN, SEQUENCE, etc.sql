@@ -153,16 +153,95 @@ CALL inserir_roupa('Luva Longa', 'Prateada', '270.50', 'P');
 
 SELECT *  FROM roupas;
 
--- TRIGGER: 
+-- TRIGGER: é algo bem amplo, nesse caso, eu criei um gatilho que dispara sempre que eu altero o preço de um produto na tabela roupas. O que acontece depois que o gatilho é ativado é 100% eu que escrevo. Além disso também aprendi aqui a usar funções de gatilho, que são muito úteis por salvarem os dados antigos e os novos enquanto os comandos dela estão acontecendo. Se eu ativar o gatilho ANTES do update, por exemplo, eu posso modificar o novo valor antes de alterar, se for DEPOIS, eu consigo armazenar ambos os arquivos em uma tabela de histórico por exemplo. Enfim, tem muito mais coisas que vou vendo devagar.
 
-CREATE TABLE precos_hitorico (
+CREATE TABLE precos_historico (
 	id id_dm,
+	id_peca INT,
 	preco_antigo NUMERIC(10,2),
-	preco_novo NUMERIC(10,2),
+	preco_novo NUMERIC(10,2), 
 	data_alteracao dm_timestamp
 )
 
+CREATE FUNCTION atualizar_historico()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+	INSERT INTO precos_historico (id_peca, preco_antigo, preco_novo) VALUES (NEW.id, OLD.preco, NEW.preco);
+	RETURN NEW;
+END;
+$$
+
 CREATE TRIGGER add_preco_historico
-AFTER UPDATE ON roupas
+AFTER 
+UPDATE OF preco ON roupas 
+FOR EACH ROW WHEN (OLD.preco IS DISTINCT FROM NEW.preco)
+EXECUTE FUNCTION atualizar_historico();
+
+UPDATE roupas 
+SET preco = preco * 1.5
+WHERE cor = 'vermelho';
+
+SELECT * FROM precos_historico;
+
+UPDATE roupas 
+SET preco = preco * 0.8
+WHERE preco > 100;
+
+-- TRIGGER: mais dois exercícios que fiz pra testar cenários diferentes
+
+CREATE FUNCTION padronizar_genero()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN 
+	IF NEW.genero IS NOT NULL THEN 
+		NEW.genero := UPPER(NEW.genero);
+	END IF;
+	RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER padronizar_genero
+BEFORE
+INSERT ON vendas
+FOR EACH ROW
+EXECUTE FUNCTION padronizar_genero();
+
+INSERT INTO vendas (nome, genero, id_peca) VALUES ('Azul Oceânico', 'f', '14');
+SELECT * FROM vendas WHERE nome = 'Azul Oceânico';
+
+
+
+CREATE TABLE roupas_apagadas (
+	id id_dm,
+	id_peca INT, 
+	tipo VARCHAR,
+	data_exclusao dm_timestamp
+)
+
+CREATE FUNCTION lixeira()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN 
+	INSERT INTO roupas_apagadas (id_peca, tipo) VALUES (OLD.id, OLD.tipo);
+	RETURN OLD;
+END;
+$$;
+
+CREATE TRIGGER lixeira_roupas
+BEFORE
+DELETE ON roupas
+FOR EACH ROW
+EXECUTE FUNCTION lixeira();
+
+DELETE FROM roupas WHERE id NOT IN (
+	SELECT id_peca FROM vendas 
+);
+
+SELECT * FROM roupas_apagadas;
+
 
 
